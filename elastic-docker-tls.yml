@@ -1,0 +1,211 @@
+version: '2.2'
+
+services:
+  elastic-master-01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${VERSION}
+    container_name: elastic-master-01
+    environment:
+      - node.name=elastic-master-01
+      - cluster.name=elastic-docker-cluster
+      - discovery.seed_hosts=elastic-master-02
+      - cluster.initial_master_nodes=elastic-master-01,elastic-master-02
+      - node.roles=${ELASTIC_MASTER_NODE_ROLE}
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms${ES_JVM_HEAP} -Xmx${ES_JVM_HEAP}"
+      - xpack.license.self_generated.type=basic # <1>
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=true # <2>
+      - xpack.security.http.ssl.key=$CERTS_DIR/elastic-master/elastic-master.key
+      - xpack.security.http.ssl.certificate_authorities=$CERTS_DIR/ca/ca.crt
+      - xpack.security.http.ssl.certificate=$CERTS_DIR/elastic-master/elastic-master.crt
+      - xpack.security.transport.ssl.enabled=true # <3>
+      - xpack.security.transport.ssl.verification_mode=certificate # <4>
+      - xpack.security.transport.ssl.certificate_authorities=$CERTS_DIR/ca/ca.crt
+      - xpack.security.transport.ssl.certificate=$CERTS_DIR/elastic-master/elastic-master.crt
+      - xpack.security.transport.ssl.key=$CERTS_DIR/elastic-master/elastic-master.key
+      - xpack.security.http.ssl.verification_mode=certificate
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 200000
+        hard: 200000
+    volumes: 
+      - ./elastic-master-data01:/usr/share/elasticsearch/data
+      - ./certs:$CERTS_DIR
+    ports:
+      - 10200:9200
+      - 10300:9300
+    networks:
+      - elastic
+    healthcheck:
+      test: curl --cacert $CERTS_DIR/ca/ca.crt -s https://localhost:9200 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  elastic-master-02:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${VERSION}
+    container_name: elastic-master-02
+    environment:
+      - node.name=elastic-master-02
+      - cluster.name=elastic-docker-cluster
+      - discovery.seed_hosts=elastic-master-02
+      - cluster.initial_master_nodes=elastic-master-01,elastic-master-02
+      - node.roles=${ELASTIC_MASTER_NODE_ROLE}
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms${ES_JVM_HEAP} -Xmx${ES_JVM_HEAP}"
+      - xpack.license.self_generated.type=basic
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=$CERTS_DIR/elastic-master/elastic-master.key
+      - xpack.security.http.ssl.certificate_authorities=$CERTS_DIR/ca/ca.crt
+      - xpack.security.http.ssl.certificate=$CERTS_DIR/elastic-master/elastic-master.crt
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.verification_mode=certificate 
+      - xpack.security.transport.ssl.certificate_authorities=$CERTS_DIR/ca/ca.crt
+      - xpack.security.transport.ssl.certificate=$CERTS_DIR/elastic-master/elastic-master.crt
+      - xpack.security.transport.ssl.key=$CERTS_DIR/elastic-master/elastic-master.key
+      - xpack.security.http.ssl.verification_mode=certificate
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 200000
+        hard: 200000
+    volumes:
+      - ./elastic-master-data02:/usr/share/elasticsearch/data
+      - ./certs:$CERTS_DIR
+    ports:
+      - 20200:9200
+      - 20300:9300
+    networks:
+      - elastic
+    healthcheck:
+      test: curl --cacert $CERTS_DIR/ca/ca.crt -s https://localhost:9200 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+
+  elastic-data-01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${VERSION}
+    container_name: elastic-data-01
+    environment:
+      - node.name=elastic-data-01
+      - cluster.name=elastic-docker-cluster
+      - discovery.seed_hosts=elastic-master-01,elastic-master-02,elastic-data-01
+      - node.roles=${ELASTIC_DATA_NODE_ROLE}
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms${ES_JVM_HEAP} -Xmx${ES_JVM_HEAP}"
+      - xpack.license.self_generated.type=basic
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=$CERTS_DIR/elastic-data/elastic-data.key
+      - xpack.security.http.ssl.certificate_authorities=$CERTS_DIR/ca/ca.crt
+      - xpack.security.http.ssl.certificate=$CERTS_DIR/elastic-data/elastic-data.crt
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.verification_mode=certificate 
+      - xpack.security.transport.ssl.certificate_authorities=$CERTS_DIR/ca/ca.crt
+      - xpack.security.transport.ssl.certificate=$CERTS_DIR/elastic-data/elastic-data.crt
+      - xpack.security.transport.ssl.key=$CERTS_DIR/elastic-data/elastic-data.key
+      - xpack.security.http.ssl.verification_mode=certificate
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 200000
+        hard: 200000
+    volumes:
+      - ./elastic-data-data01:/usr/share/elasticsearch/data
+      - ./certs:$CERTS_DIR
+    networks:
+      - elastic
+    healthcheck:
+      test: curl --cacert $CERTS_DIR/ca/ca.crt -s https://localhost:9200 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+
+  elastic-data-02:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${VERSION}
+    container_name: elastic-data-02
+    environment:
+      - node.name=elastic-data-02
+      - cluster.name=elastic-docker-cluster
+      - discovery.seed_hosts=elastic-master-01,elastic-master-02,elastic-data-02
+      - node.roles=${ELASTIC_DATA_NODE_ROLE}
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms${ES_JVM_HEAP} -Xmx${ES_JVM_HEAP}"
+      - xpack.license.self_generated.type=basic
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=$CERTS_DIR/elastic-data/elastic-data.key
+      - xpack.security.http.ssl.certificate_authorities=$CERTS_DIR/ca/ca.crt
+      - xpack.security.http.ssl.certificate=$CERTS_DIR/elastic-data/elastic-data.crt
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.verification_mode=certificate 
+      - xpack.security.transport.ssl.certificate_authorities=$CERTS_DIR/ca/ca.crt
+      - xpack.security.transport.ssl.certificate=$CERTS_DIR/elastic-data/elastic-data.crt
+      - xpack.security.transport.ssl.key=$CERTS_DIR/elastic-data/elastic-data.key
+      - xpack.security.http.ssl.verification_mode=certificate
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 200000
+        hard: 200000
+    volumes:
+      - ./elastic-data-data02:/usr/share/elasticsearch/data
+      - ./certs:$CERTS_DIR
+    networks:
+      - elastic
+    healthcheck:
+      test: curl --cacert $CERTS_DIR/ca/ca.crt -s https://localhost:9200 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${VERSION}
+    container_name: kibana
+    depends_on: {"elastic-master-01": {"condition": "service_healthy"},"elastic-master-02": {"condition": "service_healthy"}}
+    ports:
+      - 5601:5601
+    environment:
+      - KIBANA_DIR=${KIBANA_DIR}
+      - XPACK_ENCRYPTION_KEY=${XPACK_ENCRYPTION_KEY}
+      - SERVER_NAME=kibana
+      - SERVER_HOST=0.0.0.0
+
+      - 'ELASTICSEARCH_HOSTS=["https://elastic-master-01:9200","https://elastic-master-02:9200"]'
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=9uWS0N8xFj1DR4PMj4PE
+      - 'ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES=["${KIBANA_DIR}/config/certificates/ca/ca.crt"]'
+      - ELASTICSEARCH_SSL_VERIFICATIONMODE=certificate
+
+      - SERVER_SSL_ENABLED=true
+      - SERVER_SSL_KEY=${KIBANA_DIR}/config/certificates/kibana/kibana.key
+      - SERVER_SSL_CERTIFICATE=${KIBANA_DIR}/config/certificates/kibana/kibana.crt
+      - 'SERVER_SSL_CERTIFICATEAUTHORITIES=["${KIBANA_DIR}/config/certificates/ca/ca.crt"]'
+
+      - xpack.security.enabled=true
+      - XPACK_SECURITY_ENCRYPTIONKEY=${XPACK_ENCRYPTION_KEY}
+      - XPACK_REPORTING_ENCRYPTIONKEY=${XPACK_ENCRYPTION_KEY}
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${XPACK_ENCRYPTION_KEY}
+    volumes: 
+      - ./certs:${KIBANA_DIR}/config/certificates
+      # - ./kibana/config/kibana.yml:${KIBANA_DIR}/config/kibana.yml:ro
+    networks:
+      - elastic
+
+
+networks:
+  elastic:
+    driver: bridge

@@ -1,0 +1,22 @@
+instances:
+  - name: elastic-master
+    dns:
+      - elastic-master*
+      - localhost
+    # ip:
+    #   - 127.0.0.1
+
+  - name: elastic-data
+    dns:
+      - elastic-data*
+      - localhost
+    # ip:
+    #   - 127.0.0.1
+   
+  - name: kibana
+    dns: 
+      - kibana
+      - localhost
+    ip:
+      - 127.0.0.1
+   
